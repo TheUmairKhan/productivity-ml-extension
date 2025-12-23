@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MLOps</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="header">
+        <div class="title">Label this page</div>
+        <div id="url" class="url">Loading…</div>
+      </div>
+
+      <div class="buttons">
+        <button id="productive" class="btn productive">Productive</button>
+        <button id="waste" class="btn waste">Waste</button>
+        <button id="skip" class="btn skip">Skip</button>
+      </div>
+
+      <div class="footer">
+        <div id="status" class="status"></div>
+      </div>
+    </div>
+
+    <script type="module" src="dist/popup.js"></script>
+  </body>
+</html>
