@@ -40,32 +40,23 @@ function isoNowUtc(): string {
 }
 
 
-async function captureHtml(tabId: number): Promise<string | null> {
-    try {
-      const resp = await chrome.tabs.sendMessage(tabId, {
-        type: "CAPTURE_HTML",
-      });
-  
-      if (resp?.ok && typeof resp.html === "string") {
+async function captureHtml(tabId: number): Promise<string> {
+    const resp = await chrome.tabs.sendMessage(tabId, { type: "CAPTURE_HTML" });
+    if (resp?.ok && typeof resp.html === "string" && resp.html.length > 0) {
         return resp.html;
-      }
-    } catch {
-      // content script not injected / not allowed
     }
-  
-    return null;
+    throw new Error("HTML capture failed (no html returned).");
   }
   
 
 
-async function captureScreenshot(): Promise<string | null> {
-    try {
-        const screenshot = await chrome.tabs.captureVisibleTab({format: 'png'});
-        return screenshot
-    } catch (error) {
-        console.error('Screenshot failed:', error);
-        return null;
-    }
+async function captureScreenshot(): Promise<string> {
+    const dataUrl = await chrome.tabs.captureVisibleTab({ format: "jpeg", quality: 80 });
+    const commaIdx = dataUrl.indexOf(",");
+    if (commaIdx === -1) throw new Error("Screenshot capture failed (unexpected data URL format).");
+    const base64 = dataUrl.slice(commaIdx + 1);
+    if (!base64) throw new Error("Screenshot capture failed (empty base64).");
+    return base64;
 }
 
 
@@ -79,10 +70,10 @@ function isHttpUrl(raw: string): boolean {
   }
   
 
-async function pageCapture(raw_url: string, tabId: number): Promise<PageCapture | null> {
+async function pageCapture(raw_url: string, tabId: number, label: PageLabel): Promise<PageCapture | null> {
     if (!isHttpUrl(raw_url)) return null;
     const url = normalizeUrl(raw_url);
-    const date = isoNowUtc();
+    const captured_at = isoNowUtc();
     const [html, screenshot] = await Promise.all([
         captureHtml(tabId),
         captureScreenshot()
@@ -91,18 +82,35 @@ async function pageCapture(raw_url: string, tabId: number): Promise<PageCapture 
     const capture: PageCapture = {
         raw_url,
         url,
-        label: "skip",
-      };
-      if (html) capture.html = html;
-      if (screenshot) capture.screenshot = screenshot;
+        html,
+        screenshot,
+        captured_at,
+        label
+    };
 
     return capture;
 }
 
 
-async function storeCapture(capture: PageCapture): Promise<void> {
-    const key = `capture:${capture.url}`;
-    await chrome.storage.local.set({ [key]: capture });
+async function sendToLocalHost(capture: PageCapture): Promise<void> {
+    const HOST_NAME = "com.mlops.handler";
+
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendNativeMessage(
+            HOST_NAME,
+            capture,
+            (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error("Native Messaging Error:", chrome.runtime.lastError.message);
+                    reject(chrome.runtime.lastError);
+                } else {
+                    console.log("Response from Rust:", response);
+                    resolve();
+                }
+            }
+        )
+    })
+    
 }
 
 
@@ -119,7 +127,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             return;
         }
 
-        const capture = await pageCapture(raw_url, tabId);
+        const capture = await pageCapture(raw_url, tabId, label);
         if (!capture) {
             sendResponse({ ok: false, error: "Capture failed or URL not allowed." });
             return;
@@ -127,7 +135,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         
         capture.label = label;
 
-        await storeCapture(capture);
+        await sendToLocalHost(capture);
 
         sendResponse( { ok: true} )
     })().catch((e) => {
