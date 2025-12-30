@@ -22,6 +22,32 @@ struct Response {
     id: String,
     error: Option<String>,
 }
+
+#[derive(Debug)]
+enum PersistError{
+    Missing(&'static str),
+    Io(std::io::Error),
+    Sql(rusqlite::Error),
+    Base64(base64::DecodeError),
+}
+
+impl std::fmt::Display for PersistError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PersistError::Missing(field) => write!(f, "missing required field: {field}"),
+            PersistError::Io(e) => write!(f, "io error: {e}"),
+            PersistError::Sql(e) => write!(f, "sqlite error: {e}"),
+            PersistError::Base64(e) => write!(f, "base64 decode error: {e}"),
+        }
+    }
+}
+
+impl From<std::io::Error> for PersistError { fn from(e: std::io::Error) -> Self { Self::Io(e) } }
+impl From<rusqlite::Error> for PersistError { fn from(e: rusqlite::Error) -> Self { Self::Sql(e) } }
+impl From<base64::DecodeError> for PersistError { fn from(e: base64::DecodeError) -> Self { Self::Base64(e) } }
+impl std::error::Error for PersistError {}
+
+
 fn main() -> io::Result<()>{    
     let home = std::env::var("HOME").expect("Could not find HOME directory");
     let mlops_path = PathBuf::from(home)
@@ -76,7 +102,7 @@ fn main() -> io::Result<()>{
                 let resp = Response {
                     ok: false,
                     id: "".to_string(),
-                    error: Some(e),
+                    error: Some(e.to_string()),
                 };
                 let _ = write_message(&mut stdout, &resp);
             }
@@ -123,33 +149,28 @@ fn write_message<W: Write, T: Serialize>(
 }
 
 
-fn persist_capture(conn: &Connection, mlops_path: &Path, capture: PageCapture) -> Result<String, String> {
+fn persist_capture(conn: &Connection, mlops_path: &Path, capture: PageCapture) -> Result<String, PersistError> {
     let html = capture.html
         .as_deref()
-        .ok_or_else(|| "capture.html is required but was None".to_string())?;
+        .ok_or(PersistError::Missing("capture.html"))?;
 
     let screenshot = capture.screenshot
         .as_deref()
-        .ok_or_else(|| "capture.screenshot is required but was None".to_string())?;
+        .ok_or(PersistError::Missing("capture.screenshot"))?;
 
     let captures_dir = mlops_path.join("captures");
-    fs::create_dir_all(&captures_dir)
-        .map_err(|e| format!("create captures dir failed: {e}"))?;
+    fs::create_dir_all(&captures_dir)?;
 
     let key = url_key(&capture.url);
     let page_dir = captures_dir.join(&key);
-    fs::create_dir_all(&page_dir)
-        .map_err(|e| format!("create page dir failed: {e}"))?;
+    fs::create_dir_all(&page_dir)?;
 
     let html_path = page_dir.join("page.html");
-    fs::write(&html_path, html.as_bytes())
-        .map_err(|e| format!("write html failed: {e}"))?;
+    fs::write(&html_path, html.as_bytes())?;
 
-    let screenshot_bytes = decode_base64(screenshot)
-        .map_err(|e| format!("decode screenshot failed: {e}"))?;
+    let screenshot_bytes = decode_base64(screenshot)?;
     let screenshot_path = page_dir.join("screenshot.jpg");
-    fs::write(&screenshot_path, screenshot_bytes)
-        .map_err(|e| format!("write screenshot failed: {e}"))?;
+    fs::write(&screenshot_path, screenshot_bytes)?;
 
     conn.execute(
         r#"
@@ -177,17 +198,14 @@ fn persist_capture(conn: &Connection, mlops_path: &Path, capture: PageCapture) -
             capture.captured_at,
             capture.label,
         ]
-    )
-    .map_err(|e| format!("sqlite upsert failed: {e}"))?;
+    )?;
 
     Ok(key)
 }
 
 
-fn decode_base64(s: &str) -> Result<Vec<u8>, String> {
-    general_purpose::STANDARD
-        .decode(s.trim())
-        .map_err(|e| e.to_string())
+fn decode_base64(s: &str) -> Result<Vec<u8>, PersistError> {
+    Ok(general_purpose::STANDARD.decode(s.trim())?)
 }
 
 
