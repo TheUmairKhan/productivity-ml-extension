@@ -93,7 +93,7 @@ async function pageCapture(raw_url: string, tabId: number, label: PageLabel): Pr
 
 
 async function sendToLocalHost(capture: PageCapture): Promise<void> {
-    const HOST_NAME = "com.mlops.handler";
+    const HOST_NAME = "com.mlops.host";
 
     return new Promise((resolve, reject) => {
         chrome.runtime.sendNativeMessage(

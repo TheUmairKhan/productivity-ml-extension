@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "mlops",
   "version": "0.1.0",
-  "permissions": ["alarms", "storage", "scripting", "tabs, nativeMessaging"],
+  "permissions": ["alarms", "storage", "scripting", "tabs", "nativeMessaging"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "dist/background.js",
