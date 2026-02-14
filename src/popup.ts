@@ -43,15 +43,30 @@ function bindButton(id: string, label: PageLabel) {
     btn.addEventListener("click", () => void sendLabel(label));
 }
 
+async function fetchPageStatus(raw_url: string): Promise<void> {
+    const resp = await chrome.runtime.sendMessage({ type: "GET_PAGE_STATUS", raw_url });
+    if (resp?.ok) {
+        setStatus(resp.label ? `Current: ${resp.label}` : "Status: unknown");
+    } else {
+        setStatus(`Error: ${resp?.error ?? "unknown"}`);
+    }
+}
+
 async function main() {
     const tab = await getActiveTab();
     setUrlText(tab?.url ?? "No tab URL.");
-  
+
     bindButton("productive", "productive");
     bindButton("waste", "waste");
     bindButton("skip", "skip");
-  }
-  
-  document.addEventListener("DOMContentLoaded", () => {
+
+    if (tab?.url) {
+        await fetchPageStatus(tab.url);
+    } else {
+        setStatus("No URL to check");
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
     void main();
-  });
+});
