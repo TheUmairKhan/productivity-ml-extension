@@ -1,0 +1,6 @@
+assets/
+checkpoints/
+.venv/
+__pycache__/
+*.pyc
+semantic_structure/GloVe/
