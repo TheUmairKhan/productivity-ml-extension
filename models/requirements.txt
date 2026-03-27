@@ -1,3 +1,5 @@
 numpy>=1.24
 requests
 tqdm
+torch>=2.0
+scikit-learn>=1.3

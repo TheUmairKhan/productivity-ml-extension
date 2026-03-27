@@ -16,5 +16,5 @@ N = 16     # structural embedding dimension (Gaussian initialized)
 DB_PATH = os.path.expanduser("~/Library/Application Support/mlops/pages.db")
 GLOVE_PATH = os.path.join(os.path.dirname(__file__), "semantic_structure", "GloVe", "dolma_300_2024_1.2M.100_combined.txt")
 
-LABEL_TO_IDX = {"productive": 0, "waste": 1, "skip": 2}
+LABEL_TO_IDX = {"productive": 0, "waste": 1}
 IDX_TO_LABEL = {v: k for k, v in LABEL_TO_IDX.items()}
