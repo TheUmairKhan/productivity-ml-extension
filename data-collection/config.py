@@ -14,6 +14,10 @@ BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
 BRAVE_FETCH_COUNT = 10             # fetch extra to survive dedup filtering
 BRAVE_REQUEST_DELAY = 0.5          # seconds between API calls
 
+SCRAPE_CONCURRENCY = 5             # simultaneous browser pages during HTML scraping
+SCRAPE_PAGE_TIMEOUT_MS = 30_000    # per-page timeout in ms
+SCRAPE_DOMAIN_DELAY_S = 1.0        # pause between requests to the same domain
+
 DOMAIN_CAP = 2          # max URLs per domain across the whole dataset
 SUBREDDIT_CAP = 2       # max URLs per subreddit (reddit.com only)
 UNLIMITED_DOMAINS: frozenset[str] = frozenset({
