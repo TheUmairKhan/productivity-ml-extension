@@ -63,6 +63,8 @@ class _StructuredParser(HTMLParser):
             if name in _META_NAMES:
                 content = attrs_dict.get("content") or ""
                 for tok in _tokenize(content):
+                    if len(self.pairs) >= self._max_tokens:
+                        return
                     self.pairs.append((tok, "meta_desc"))
             return  # void element — never push stack
 
