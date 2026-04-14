@@ -1,7 +1,7 @@
 import os
 
 ANTHROPIC_API_KEY: str = os.environ["ANTHROPIC_API_KEY"]
-BRAVE_API_KEY: str = os.environ["BRAVE_SEARCH_API_KEY"]
+BRAVE_API_KEY: str = os.environ["BRAVE_API_KEY"]
 CLAUDE_MODEL = "claude-sonnet-4-6"
 CLAUDE_MAX_TOKENS = 4096
 

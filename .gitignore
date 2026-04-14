@@ -2,3 +2,5 @@ dist/
 node_modules/
 target/
 .env
+__pycache__/
+*.pyc
