@@ -1,0 +1,7 @@
+{
+  "name": "com.predictor",
+  "description": "real-time page classifier",
+  "path": "__SCRIPT_PATH__",
+  "type": "stdio",
+  "allowed_origins": ["chrome-extension://__EXTENSION_ID__/"]
+}
