@@ -1,5 +1,5 @@
-import { PageCapture, StatusResponse } from "./types";
-import { normalizeUrl } from "./capture";
+import { PageCapture, StatusResponse } from "./types.js";
+import { normalizeUrl } from "./capture.js";
 
 const HOST_NAME = "com.mlops.host";
 

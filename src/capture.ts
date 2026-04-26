@@ -1,4 +1,4 @@
-import { PageCapture, PageLabel } from "./types";
+import { PageCapture, PageLabel } from "./types.js";
 
 export function normalizeUrl(rawUrl: string): string {
     let url: URL
@@ -47,12 +47,15 @@ function isoNowUtc(): string {
     return new Date().toISOString();
 }
 
-async function captureHtml(tabId: number): Promise<string> {
-    const resp = await chrome.tabs.sendMessage(tabId, { type: "CAPTURE_HTML" });
-    if (resp?.ok && typeof resp.html === "string" && resp.html.length > 0) {
-        return resp.html;
-    }
-    throw new Error("HTML capture failed (no html returned).");
+export async function captureHtml(tabId: number): Promise<string> {
+    // Inject directly into the tab on demand
+    const results = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: () => document.documentElement.outerHTML,
+    });
+    const html = results[0]?.result as string | undefined;
+    if (!html) throw new Error("HTML capture failed.");
+    return html;
 }
 
 async function captureScreenshot(): Promise<string> {

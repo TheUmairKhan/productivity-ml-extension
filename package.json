@@ -1,6 +1,7 @@
 {
   "name": "mlops",
   "private": true,
+  "type": "module",
   "devDependencies": {
     "@types/chrome": "^0.1.32",
     "typescript": "^5.0.0",

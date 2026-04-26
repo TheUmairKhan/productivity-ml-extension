@@ -19,3 +19,10 @@ export interface StatusResponse {
     label: PageLabel | null;
     error?: string;
 }
+
+export interface PredictionResult {
+    label: 'productive' | 'waste';
+    p_productive: number;
+    p_waste: number;
+    n_tokens: number;
+}
