@@ -44,11 +44,15 @@ class PageDataset(Dataset):
         self.tag2idx = tag2idx
         self.label2idx = label2idx
         self.m = m
+        self._cache: List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = [None] * len(self.records)  # type: ignore[list-item]
 
     def __len__(self) -> int:
         return len(self.records)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        if self._cache[idx] is not None:
+            return self._cache[idx]
+
         _, html_path, label_str = self.records[idx]
 
         pairs = _parse_html(html_path, self.m)
@@ -62,8 +66,10 @@ class PageDataset(Dataset):
 
         label = self.label2idx[label_str]
 
-        return (
+        item = (
             torch.from_numpy(word_idx),
             torch.from_numpy(tag_idx),
             torch.tensor(label, dtype=torch.long),
         )
+        self._cache[idx] = item
+        return item
