@@ -76,11 +76,26 @@ function renderPrediction(r: PredictionResult | null): void {
     countEl.textContent = `${r.n_tokens} tokens`;
 }
 
+async function initBlockingToggle(tab: chrome.tabs.Tab | null) {
+    const toggle = document.getElementById("block-toggle") as HTMLInputElement | null;
+    if (!toggle) return;
+    const resp = await chrome.runtime.sendMessage({ type: "GET_BLOCKING" });
+    toggle.checked = resp?.blocking_enabled ?? false;
+    toggle.addEventListener("change", () => {
+        void chrome.runtime.sendMessage({ type: "SET_BLOCKING", enabled: toggle.checked });
+        if (toggle.checked && tab?.id && tab?.url) {
+            void chrome.runtime.sendMessage({ type: "PREDICT_PAGE", tabId: tab.id, raw_url: tab.url });
+        }
+    });
+}
+
 async function main() {
     const tab = await getActiveTab();
     setUrlText(tab?.url ?? "No tab URL.");
 
-    if (tab?.id && tab.url) {
+    const isExtensionPage = tab?.url?.startsWith("chrome-extension://") ?? false;
+
+    if (!isExtensionPage && tab?.id && tab.url) {
         const cached = await chrome.runtime.sendMessage({ type: "GET_PREDICTION", raw_url: tab.url });
         if (cached?.result) {
             renderPrediction(cached.result as PredictionResult);
@@ -105,11 +120,13 @@ async function main() {
     bindButton("waste", "waste");
     bindButton("skip", "skip");
 
-    if (tab?.url) {
+    if (!isExtensionPage && tab?.url) {
         await fetchPageStatus(tab.url);
-    } else {
+    } else if (!isExtensionPage) {
         setStatus("No URL to check");
     }
+
+    await initBlockingToggle(tab);
 }
 
 document.addEventListener("DOMContentLoaded", () => {

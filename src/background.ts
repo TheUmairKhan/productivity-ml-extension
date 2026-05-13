@@ -43,29 +43,69 @@ function predictHtml(html: string): Promise<PredictionResult> {
     });
 }
 
-async function predictTab(tabId: number, rawUrl: string): Promise<PredictionResult | null> {
+async function predictTab(tabId: number, rawUrl: string, prevUrl?: string): Promise<PredictionResult | null> {
     if (!isHttpUrl(rawUrl)) return null;
     const key = "pred:" + normalizeUrl(rawUrl);
 
     const cached = await chrome.storage.session.get(key);
-    if (cached[key]) return cached[key] as PredictionResult;
+    let result: PredictionResult;
 
-    const html = await captureHtml(tabId);
-    const result = await predictHtml(html);
-    await chrome.storage.session.set({ [key]: result });
+    if (cached[key]) {
+        result = cached[key] as PredictionResult;
+    } else {
+        const html = await captureHtml(tabId);
+        result = await predictHtml(html);
+        await chrome.storage.session.set({ [key]: result });
 
-    const text = result.label === "productive" ? "P" : "W";
-    const color = result.label === "productive" ? "#0b5" : "#e44";
-    chrome.action.setBadgeText({ text, tabId });
-    chrome.action.setBadgeBackgroundColor({ color, tabId });
+        const text = result.label === "productive" ? "P" : "W";
+        const color = result.label === "productive" ? "#0b5" : "#e44";
+        chrome.action.setBadgeText({ text, tabId });
+        chrome.action.setBadgeBackgroundColor({ color, tabId });
+    }
+
+    if (result.label === "waste") {
+        const { blocking_enabled = false } = await chrome.storage.local.get("blocking_enabled") as { blocking_enabled?: boolean };
+        if (blocking_enabled) {
+            const { block_allowlist = [] } = await chrome.storage.session.get("block_allowlist") as { block_allowlist?: string[] };
+            const norm = normalizeUrl(rawUrl);
+            const isAllowed = (block_allowlist as string[]).some(u => normalizeUrl(u) === norm);
+            if (!isAllowed) {
+                let blockedUrl = chrome.runtime.getURL("blocked.html") + "?url=" + encodeURIComponent(rawUrl);
+                if (prevUrl) blockedUrl += "&back=" + encodeURIComponent(prevUrl);
+                chrome.tabs.update(tabId, { url: blockedUrl });
+            }
+        }
+    }
+
     return result;
 }
 
-chrome.tabs.onUpdated.addListener((tabId, info, tab) => {
-    if (info.status === "complete" && tab.url && isHttpUrl(tab.url)) {
-        predictTab(tabId, tab.url).catch(console.error);
+const currentTabUrl = new Map<number, string>();
+
+chrome.tabs.query({}, (tabs) => {
+    for (const tab of tabs) {
+        if (tab.id !== undefined && tab.url && isHttpUrl(tab.url)) {
+            currentTabUrl.set(tab.id, tab.url);
+        }
     }
 });
+
+chrome.tabs.onCreated.addListener((tab) => {
+    if (tab.id !== undefined && tab.openerTabId !== undefined) {
+        const openerUrl = currentTabUrl.get(tab.openerTabId);
+        if (openerUrl) currentTabUrl.set(tab.id, openerUrl);
+    }
+});
+
+chrome.tabs.onUpdated.addListener((tabId, info, tab) => {
+    if (info.status === "complete" && tab.url && isHttpUrl(tab.url)) {
+        const prev = currentTabUrl.get(tabId);
+        currentTabUrl.set(tabId, tab.url);
+        predictTab(tabId, tab.url, prev).catch(console.error);
+    }
+});
+
+chrome.tabs.onRemoved.addListener((tabId) => currentTabUrl.delete(tabId));
 
 // --- Message router ---
 
@@ -112,6 +152,13 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             const key = "pred:" + normalizeUrl(raw_url);
             const stored = await chrome.storage.session.get(key);
             sendResponse({ ok: true, result: stored[key] ?? null });
+        } else if (msg?.type === "GET_BLOCKING") {
+            const { blocking_enabled = false } = await chrome.storage.local.get("blocking_enabled") as { blocking_enabled?: boolean };
+            sendResponse({ ok: true, blocking_enabled });
+        } else if (msg?.type === "SET_BLOCKING") {
+            const enabled: boolean = msg.enabled ?? false;
+            await chrome.storage.local.set({ blocking_enabled: enabled });
+            sendResponse({ ok: true });
         }
     })().catch((e) => {
         sendResponse({ ok: false, error: String(e?.message ?? e) });

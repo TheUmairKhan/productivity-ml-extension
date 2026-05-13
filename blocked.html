@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Page Blocked</title>
+    <link rel="stylesheet" href="blocked.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="icon">⛔</div>
+      <h1>Unproductive Page Blocked</h1>
+      <p class="reason">Your model classified this page as <strong>unproductive</strong>.</p>
+      <div class="url-box" id="blocked-url"></div>
+      <div class="actions">
+        <button id="go-back" class="btn-back">← Go Back</button>
+        <button id="proceed" class="btn-proceed">Proceed Anyway</button>
+      </div>
+      <p class="hint">You can disable blocking in the extension popup.</p>
+    </div>
+    <script type="module" src="dist/blocked.js"></script>
+  </body>
+</html>
