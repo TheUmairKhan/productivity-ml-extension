@@ -46,10 +46,6 @@ export interface GetPredictionRequest {
     raw_url: string;
 }
 
-export interface GetBlockingRequest {
-    type: "GET_BLOCKING";
-}
-
 export interface SetBlockingRequest {
     type: "SET_BLOCKING";
     enabled: boolean;
@@ -60,5 +56,4 @@ export type ExtensionMessage =
     | GetPageStatusRequest
     | PredictPageRequest
     | GetPredictionRequest
-    | GetBlockingRequest
     | SetBlockingRequest;

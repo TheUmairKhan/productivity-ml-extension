@@ -1,4 +1,4 @@
-import { MessageType } from "./shared/constants.js";
+import { MessageType, StorageKey } from "./shared/constants.js";
 import type { PageLabel, PredictionResult } from "./shared/types.js";
 
 async function getActiveTab(): Promise<chrome.tabs.Tab | null> {
@@ -88,8 +88,8 @@ async function initBlockingToggle(tab: chrome.tabs.Tab | null): Promise<void> {
     const toggle = document.getElementById("block-toggle") as HTMLInputElement | null;
     if (!toggle) return;
 
-    const resp = await chrome.runtime.sendMessage({ type: MessageType.GET_BLOCKING });
-    toggle.checked = resp?.blocking_enabled ?? false;
+    const stored = await chrome.storage.local.get(StorageKey.BLOCKING_ENABLED) as { blocking_enabled?: boolean };
+    toggle.checked = stored.blocking_enabled ?? false;
 
     toggle.addEventListener("change", () => {
         void chrome.runtime.sendMessage({ type: MessageType.SET_BLOCKING, enabled: toggle.checked });

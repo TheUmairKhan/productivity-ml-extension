@@ -42,11 +42,6 @@ const router = new MessageRouter();
 predictor.registerHandlers(router);
 nativeHost.registerHandlers(router);
 
-router.register(MessageType.GET_BLOCKING, async () => {
-    const stored = await chrome.storage.local.get(StorageKey.BLOCKING_ENABLED) as { blocking_enabled?: boolean };
-    return { ok: true, blocking_enabled: stored.blocking_enabled ?? false };
-});
-
 router.register(MessageType.SET_BLOCKING, async (msg: SetBlockingRequest) => {
     await chrome.storage.local.set({ [StorageKey.BLOCKING_ENABLED]: msg.enabled });
     return { ok: true };
