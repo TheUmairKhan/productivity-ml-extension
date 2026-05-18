@@ -1,0 +1,64 @@
+export type PageLabel = "productive" | "waste" | "skip";
+
+export interface PageCapture {
+    raw_url: string;
+    url: string;
+    html: string;
+    screenshot: string;
+    captured_at: string;
+    label: PageLabel;
+}
+
+export interface StatusResponse {
+    ok: boolean;
+    label: PageLabel | null;
+    error?: string;
+}
+
+export interface PredictionResult {
+    label: "productive" | "waste";
+    p_productive: number;
+    p_waste: number;
+    n_tokens: number;
+}
+
+// Typed message request interfaces — discriminated union for the message router
+export interface LabelPageRequest {
+    type: "LABEL_PAGE";
+    tabId: number;
+    raw_url: string;
+    label: PageLabel;
+}
+
+export interface GetPageStatusRequest {
+    type: "GET_PAGE_STATUS";
+    raw_url: string;
+}
+
+export interface PredictPageRequest {
+    type: "PREDICT_PAGE";
+    tabId: number;
+    raw_url: string;
+}
+
+export interface GetPredictionRequest {
+    type: "GET_PREDICTION";
+    raw_url: string;
+}
+
+export interface GetBlockingRequest {
+    type: "GET_BLOCKING";
+}
+
+export interface SetBlockingRequest {
+    type: "SET_BLOCKING";
+    enabled: boolean;
+}
+
+export type ExtensionMessage =
+    | LabelPageRequest
+    | GetPageStatusRequest
+    | PredictPageRequest
+    | GetPredictionRequest
+    | GetBlockingRequest
+    | SetBlockingRequest;
