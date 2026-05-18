@@ -1,5 +1,5 @@
 import { MessageType, StorageKey } from "./shared/constants.js";
-import { SetBlockingRequest } from "./shared/types.js";
+import { SetBlockingRequest, SetPomodoro } from "./shared/types.js";
 import { MessageRouter } from "./shared/message-router.js";
 import { isHttpUrl } from "./services/capture.js";
 import { predictTab } from "./services/predictor.js";
@@ -45,6 +45,32 @@ nativeHost.registerHandlers(router);
 router.register(MessageType.SET_BLOCKING, async (msg: SetBlockingRequest) => {
     await chrome.storage.local.set({ [StorageKey.BLOCKING_ENABLED]: msg.enabled });
     return { ok: true };
+});
+
+router.register(MessageType.SET_POMODORO, async (msg: SetPomodoro) => {
+    if (msg.enabled && msg.durationMinutes) {
+        chrome.alarms.create("pomodoro", { delayInMinutes: msg.durationMinutes });
+        await chrome.storage.local.set({
+            [StorageKey.POMODORO_ENABLED]: true,
+            [StorageKey.BLOCKING_ENABLED]: true,
+        });
+    } else {
+        chrome.alarms.clear("pomodoro");
+        await chrome.storage.local.set({
+            [StorageKey.POMODORO_ENABLED]: false,
+            [StorageKey.BLOCKING_ENABLED]: false,
+        });
+    }
+    return { ok: true };
+});
+
+chrome.alarms.onAlarm.addListener(async (alarm: { name: string }) => {
+    if (alarm.name === "pomodoro") {
+        await chrome.storage.local.set({
+            [StorageKey.POMODORO_ENABLED]: false,
+            [StorageKey.BLOCKING_ENABLED]: false,
+        });
+    }
 });
 
 router.listen();

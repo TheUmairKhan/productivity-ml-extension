@@ -30,6 +30,19 @@
         <input type="checkbox" id="block-toggle" />
       </div>
 
+      <div class="pomodoro-row">
+        <div id="pomodoro-setup">
+          <label for="pomodoro-minutes">Focus timer</label>
+          <input type="number" id="pomodoro-minutes" min="1" max="180" value="25" />
+          <span>min</span>
+          <button id="pomodoro-start">Start</button>
+        </div>
+        <div id="pomodoro-active" style="display:none">
+          <span id="pomodoro-countdown">--:--</span>
+          <button id="pomodoro-cancel">Cancel</button>
+        </div>
+      </div>
+
       <div class="footer">
         <div id="status" class="status"></div>
       </div>

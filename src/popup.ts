@@ -1,5 +1,6 @@
 import { MessageType, StorageKey } from "./shared/constants.js";
 import type { PageLabel, PredictionResult } from "./shared/types.js";
+import { initPomodoro } from "./pomodoro.js";
 
 async function getActiveTab(): Promise<chrome.tabs.Tab | null> {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -120,6 +121,7 @@ async function main(): Promise<void> {
     }
 
     await initBlockingToggle(tab);
+    await initPomodoro();
 }
 
 document.addEventListener("DOMContentLoaded", () => { void main(); });

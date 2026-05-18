@@ -51,9 +51,16 @@ export interface SetBlockingRequest {
     enabled: boolean;
 }
 
+export interface SetPomodoro {
+    type: "SET_POMODORO";
+    enabled: boolean;
+    durationMinutes?: number;
+}
+
 export type ExtensionMessage =
     | LabelPageRequest
     | GetPageStatusRequest
     | PredictPageRequest
     | GetPredictionRequest
-    | SetBlockingRequest;
+    | SetBlockingRequest
+    | SetPomodoro;
