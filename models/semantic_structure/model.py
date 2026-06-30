@@ -85,14 +85,14 @@ class JFCNN(nn.Module):
         self.fc1 = nn.Linear(conv_out, fc_hidden)
         self.fc2 = nn.Linear(fc_hidden, num_classes)
 
-    def forward(self, word_idx: torch.Tensor, tag_idx: torch.Tensor) -> torch.Tensor:
+    def encode(self, word_idx: torch.Tensor, tag_idx: torch.Tensor) -> torch.Tensor:
         """
-        Args:
-            word_idx : (B, M) int64 — token indices, 0=PAD
-            tag_idx  : (B, M) int64 — tag indices,   0=PAD
+        Return z_i: the pooled CNN representation before the FC head.
 
-        Returns:
-            logits: (B, num_classes)
+        Shape:
+            (B, num_filters * len(kernel_sizes))
+
+        Used by the two-tower scorer.
         """
         # Lookup + concatenate embeddings: (B, M, k+n)
         x = torch.cat([self.word_emb(word_idx), self.struct_emb(tag_idx)], dim=-1)
@@ -106,8 +106,21 @@ class JFCNN(nn.Module):
             for conv in self.convs
         ]
 
+        return torch.cat(pooled, dim=1)  # (B, num_filters * |kernel_sizes|)
+
+
+
+    def forward(self, word_idx: torch.Tensor, tag_idx: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            word_idx : (B, M) int64 — token indices, 0=PAD
+            tag_idx  : (B, M) int64 — tag indices,   0=PAD
+
+        Returns:
+            logits: (B, num_classes)
+        """
         # Concatenate towers: (B, num_filters * |kernel_sizes|)
-        out = self.dropout(torch.cat(pooled, dim=1))
+        out = self.dropout(self.encode(word_idx, tag_idx))
 
         # FC layers
         out = self.dropout(self.relu(self.fc1(out)))
