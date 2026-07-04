@@ -26,6 +26,73 @@ from semantic_structure.dataset import PageDataset
 from semantic_structure.model import JFCNN
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--config", 
+                        default=str(Path(__file__).parent / "configs" / "jfcnn.yaml"))
+
+    # Training overrides
+    parser.add_argument("--batch-size", type=int, default=None)
+    parser.add_argument("--num-epochs", type=int, default=None)
+    parser.add_argument("--lr", type=float, default=None)
+    parser.add_argument("--wd", type=float, default=None)
+    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--val-split", type=float, default=None)
+    parser.add_argument("--test-split", type=float, default=None)
+    parser.add_argument("--interval", type=int, default=None)
+
+    # Model overrides
+    parser.add_argument("--num-filters", type=int, default=None)
+    parser.add_argument("--fc-hidden", type=int, default=None)
+    parser.add_argument("--dropout", type=float, default=None)
+    parser.add_argument("--freeze-word-emb", action="store_true")
+
+    # Path overrides
+    parser.add_argument("--db-path", type=str, default=None)
+    parser.add_argument("--checkpoint-name", type=str, default=None)
+
+    return parser.parse_args()
+
+def apply_overrides(cfg: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
+    training_overrides = {
+        "batch_size": args.batch_size,
+        "num_epochs": args.num_epochs,
+        "lr": args.lr,
+        "wd": args.wd,
+        "seed": args.seed,
+        "val_split": args.val_split,
+        "test_split": args.test_split,
+        "interval": args.interval,
+    }
+    model_overrides = {
+        "num_filters": args.num_filters,
+        "fc_hidden": args.fc_hidden,
+        "dropout": args.dropout,
+    }
+
+    path_overrides = {
+        "db_path": args.db_path,
+        "checkpoint_name": args.checkpoint_name,
+    }
+
+    for key, value in training_overrides.items():
+        if value is not None:
+            cfg["paths"]["training"][key] = value
+
+    for key, value in model_overrides.items():
+        if value is not None:
+            cfg["paths"]["model"][key] = value
+
+    for key, value in path_overrides.items():
+        if value is not None:
+            cfg["paths"][key] = value
+
+    if args.freeze_word_emb:
+        cfg["paths"]["model"]["freeze_word_emb"] = True
+
+    return cfg
+
 def _auto_device() -> torch.device:
     if torch.backends.mps.is_available():
         return torch.device("mps")
@@ -173,15 +240,12 @@ def train(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--config",
-        default=str(Path(__file__).parent / "configs" / "jfcnn.yaml"),
-    )
-    args = parser.parse_args()
+    args = parse_args()
 
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
+
+    cfg = apply_overrides(cfg, args)
 
     paths_cfg    = cfg["paths"]
     model_cfg    = paths_cfg["model"]
