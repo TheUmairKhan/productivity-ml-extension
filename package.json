@@ -12,5 +12,8 @@
     "watch": "tsc -p tsconfig.json --watch",
     "test": "vitest run",
     "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.1.0"
   }
 }
