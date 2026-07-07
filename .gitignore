@@ -6,3 +6,4 @@ __pycache__/
 *.pyc
 urls_dataset.json
 .neon
+.secrets/

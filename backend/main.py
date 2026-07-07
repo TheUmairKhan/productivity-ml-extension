@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends
 
 from .auth import auth_backend, fastapi_users, current_active_user
+from .social_auth import router as social_auth_router
 from .users import UserCreate, UserRead
 from .models import User
 
@@ -30,6 +31,13 @@ app.include_router(
 # Email verification
 app.include_router(
     fastapi_users.get_verify_router(UserRead),
+    prefix="/auth",
+    tags=["auth"],
+)
+
+# Google social login
+app.include_router(
+    social_auth_router,
     prefix="/auth",
     tags=["auth"],
 )
