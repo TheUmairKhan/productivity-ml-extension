@@ -4,7 +4,7 @@ from .auth import auth_backend, fastapi_users, current_active_user
 from .social_auth import router as social_auth_router
 from .users import UserCreate, UserRead
 from .models import User
-
+from .pages import router as pages_router
 app = FastAPI()
 
 # Registration
@@ -40,6 +40,11 @@ app.include_router(
     social_auth_router,
     prefix="/auth",
     tags=["auth"],
+)
+
+app.include_router(
+    pages_router,
+    tags=["pages"]
 )
 
 @app.get("/users/me")

@@ -1,0 +1,10 @@
+fastapi==0.139.0
+fastapi-users[sqlalchemy]==15.0.5
+fastapi-users-db-sqlalchemy==7.0.0
+sqlalchemy==2.0.51
+asyncpg==0.31.0
+python-dotenv==1.2.2
+uvicorn==0.50.0
+pydantic==2.13.0
+httpx==0.28.1
+boto3==1.43.42
