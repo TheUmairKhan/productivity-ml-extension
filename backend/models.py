@@ -1,13 +1,16 @@
+import os
 import uuid
 from datetime import datetime
 
 from fastapi_users.db import SQLAlchemyBaseUserTableUUID
-
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import DateTime, String, ForeignKey, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base
+
+EMBEDDING_DIM = int(os.environ["EMBEDDING_DIM"])
 
 class User(SQLAlchemyBaseUserTableUUID, Base):
     __tablename__ = "users"
@@ -23,7 +26,7 @@ class Page(Base):
     url: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     raw_url: Mapped[str] = mapped_column(String, nullable=False)
     r2_key: Mapped[str | None] = mapped_column(String, nullable=True)
-    # embedding column (pgvector) also exists on this table but isn't mapped here yet —
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIM), nullable=True)
     captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
 

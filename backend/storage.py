@@ -27,4 +27,8 @@ class R2Client:
     def upload_html(self, data:bytes, key:str) -> None:
         self.client.put_object(Bucket=self.bucket, Key=key, Body=data, ContentType="text/html")
 
+    def download_html(self, key:str) -> str:
+        response = self.client.get_object(Bucket=self.bucket, Key=key)
+        return response["Body"].read().decode("utf-8")
+
 r2_client = R2Client(bucket=os.environ["R2_BUCKET"])
