@@ -16,6 +16,8 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     __tablename__ = "users"
 
     google_sub: Mapped[str | None] = mapped_column(String, unique=True, nullable=True)
+    embedding_productive: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIM), nullable=True)
+    embedding_waste: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIM), nullable=True)
 
 class Page(Base):
     __tablename__ = "pages"

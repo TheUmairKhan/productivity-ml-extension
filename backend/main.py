@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 
 from .auth import auth_backend, fastapi_users, current_active_user
 from .social_auth import router as social_auth_router
-from .users import UserCreate, UserRead
+from .users import UserCreate, UserRead, router as users_router
 from .models import User
 from .pages import router as pages_router
 app = FastAPI()
@@ -47,6 +47,10 @@ app.include_router(
     tags=["pages"]
 )
 
+app.include_router(
+    users_router,
+    tags=["users"]
+)
 @app.get("/users/me")
 async def get_me(user: User = Depends(current_active_user)):
     return {"email": user.email}
