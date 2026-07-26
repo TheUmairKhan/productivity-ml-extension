@@ -1,5 +1,3 @@
-import { PageCapture, PageLabel } from "../shared/types.js";
-
 // Tracking and analytics params stripped during normalization
 const TRACKING_PARAMS = new Set([
     "gclid", "dclid", "gbraid", "wbraid",
@@ -54,19 +52,3 @@ export async function captureHtml(tabId: number): Promise<string> {
     return html;
 }
 
-async function captureScreenshot(): Promise<string> {
-    const dataUrl = await chrome.tabs.captureVisibleTab({ format: "jpeg", quality: 80 });
-    const commaIdx = dataUrl.indexOf(",");
-    if (commaIdx === -1) throw new Error("Screenshot capture failed (unexpected data URL format).");
-    const base64 = dataUrl.slice(commaIdx + 1);
-    if (!base64) throw new Error("Screenshot capture failed (empty base64).");
-    return base64;
-}
-
-export async function pageCapture(raw_url: string, tabId: number, label: PageLabel): Promise<PageCapture | null> {
-    if (!isHttpUrl(raw_url)) return null;
-    const url = normalizeUrl(raw_url);
-    const captured_at = new Date().toISOString();
-    const [html, screenshot] = await Promise.all([captureHtml(tabId), captureScreenshot()]);
-    return { raw_url, url, html, screenshot, captured_at, label };
-}

@@ -3,18 +3,26 @@
   "name": "mlops",
   "version": "0.1.0",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArKanOt6z2X0vkyoMGr5Y9WCgjbQlikL/DnCz2iIjwKra+eOYkt3z1dfHi+vhFq3N61BQmtoX/RdD3u088jSGBpr4ZldVm8AR3CPcKc4Lfo57hGTs1SY0aFOtEauqG0jaKFqnz971Oi/pHEcR6p0CSSQkemwwYwPuZ01ECOCQiVJkUHmL0dE2uSmp3m/TXyQ2sM4XEVfYaWuEO2Nh8/NencQ+jA9h0T2Wevn4vRKSWvVV6Nn8ruFu8w+Js/Gp+H0cBQd739cuH16Y9eI/exXXpzARXS4JtpdQ8AEjgh5ERLjmzzVgoxwhMyCxxbpyr0PArcRSkkP8n7BqKscE27lv1wIDAQAB",
-  "permissions": ["alarms", "storage", "scripting", "tabs", "nativeMessaging", "identity"],
+  "permissions": ["alarms", "storage", "unlimitedStorage", "scripting", "tabs", "identity"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "dist/background.js",
     "type": "module"
   },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
     "default_title": "MLOps",
-    "default_popup": "popup.html"
-  },
-  "oauth2": {
-    "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
-    "scopes": ["openid", "email", "profile"]
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   }
 }

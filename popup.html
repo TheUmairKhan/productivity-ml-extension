@@ -7,26 +7,45 @@
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <div class="wrap">
-      <div class="header">
-        <div class="title">Label this page</div>
-        <div id="url" class="url">Loading…</div>
+    <section id="view-loading" class="wrap">
+      <div class="muted">Loading…</div>
+    </section>
+
+    <section id="view-auth" class="wrap" hidden>
+      <div class="title">Sign in to MLOps</div>
+
+      <div class="tabs">
+        <button id="tab-signin" class="tab active">Sign in</button>
+        <button id="tab-signup" class="tab">Create account</button>
       </div>
+
+      <!-- Deliberately not a <form>: a native submit navigates the popup document. -->
+      <input id="auth-email" class="field" type="email" placeholder="you@example.com" autocomplete="username" />
+      <input id="auth-password" class="field" type="password" placeholder="Password" autocomplete="current-password" />
+      <button id="auth-submit" class="btn primary">Sign in</button>
+
+      <div class="divider"><span>or</span></div>
+      <button id="google-signin" class="btn">Continue with Google</button>
+
+      <div id="auth-error" class="error"></div>
+    </section>
+
+    <section id="view-main" class="wrap" hidden>
+      <div class="acct">
+        <span id="acct-email" class="muted"></span>
+        <button id="sign-out" class="link">Sign out</button>
+      </div>
+
+      <div id="url" class="url">Loading…</div>
 
       <div class="prediction">
         <div id="prediction-label">—</div>
         <div class="confidence-bg"><div id="confidence-bar"></div></div>
-        <div id="token-count"></div>
-      </div>
-
-      <div class="buttons">
-        <button id="productive" class="btn productive">Productive</button>
-        <button id="waste" class="btn waste">Waste</button>
-        <button id="skip" class="btn skip">Skip</button>
+        <div class="stub-note">stub model — random 50/50</div>
       </div>
 
       <div class="block-row">
-        <label for="block-toggle">Block unproductive pages</label>
+        <label for="block-toggle">Focus mode</label>
         <input type="checkbox" id="block-toggle" />
       </div>
 
@@ -43,10 +62,30 @@
         </div>
       </div>
 
+      <div class="section">
+        <div class="section-title">Donate this page</div>
+        <div class="seg">
+          <button id="donate-productive" class="seg-btn active">Productive</button>
+          <button id="donate-waste" class="seg-btn">Waste</button>
+        </div>
+        <button id="donate-btn" class="btn">Add to donation list</button>
+        <div id="donate-error" class="error"></div>
+      </div>
+
+      <div class="section">
+        <div class="staged-head">
+          <span>Staged <span id="staged-count">0</span></span>
+          <button id="clear-all" class="link">Clear all</button>
+        </div>
+        <ul id="staged-list" class="staged-list"></ul>
+        <button id="upload-all" class="btn primary" disabled>Upload all</button>
+        <div id="upload-progress" class="progress"></div>
+      </div>
+
       <div class="footer">
         <div id="status" class="status"></div>
       </div>
-    </div>
+    </section>
 
     <script type="module" src="dist/popup.js"></script>
   </body>

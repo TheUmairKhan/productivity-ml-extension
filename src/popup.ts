@@ -1,6 +1,20 @@
 import { MessageType, StorageKey } from "./shared/constants.js";
-import type { PageLabel, PredictionResult } from "./shared/types.js";
+import type { AuthStatus, PredictionResult } from "./shared/types.js";
 import { initPomodoro } from "./pomodoro.js";
+import { initAuthView } from "./popup-auth.js";
+import { initDonateView, refreshDonateView } from "./popup-donate.js";
+
+type View = "loading" | "auth" | "main";
+
+let mainInitialized = false;
+let authInitialized = false;
+
+function showView(view: View): void {
+    for (const name of ["loading", "auth", "main"] as const) {
+        const el = document.getElementById(`view-${name}`);
+        if (el) el.hidden = name !== view;
+    }
+}
 
 async function getActiveTab(): Promise<chrome.tabs.Tab | null> {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -17,33 +31,13 @@ function setUrlText(msg: string): void {
     if (el) el.textContent = msg;
 }
 
-async function sendLabel(label: PageLabel): Promise<void> {
-    const tab = await getActiveTab();
-    if (!tab?.id || !tab.url) { setStatus("No active tab URL."); return; }
-
-    setStatus("Saving...");
-    const resp = await chrome.runtime.sendMessage({ type: MessageType.LABEL_PAGE, tabId: tab.id, raw_url: tab.url, label });
-    setStatus(resp?.ok ? `Saved: ${label}` : `Failed: ${resp?.error ?? "unknown error"}`);
-}
-
-function bindButton(id: string, label: PageLabel): void {
-    const btn = document.getElementById(id) as HTMLButtonElement | null;
-    btn?.addEventListener("click", () => void sendLabel(label));
-}
-
 function renderPrediction(r: PredictionResult | null): void {
     const labelEl = document.getElementById("prediction-label");
     const barEl = document.getElementById("confidence-bar") as HTMLElement | null;
-    const countEl = document.getElementById("token-count");
-    if (!labelEl || !barEl || !countEl) return;
+    if (!labelEl || !barEl) return;
 
     if (!r) {
         labelEl.textContent = "Loading…";
-        labelEl.style.color = "#888";
-        return;
-    }
-    if (r.n_tokens < 5) {
-        labelEl.textContent = "Insufficient content";
         labelEl.style.color = "#888";
         return;
     }
@@ -53,7 +47,6 @@ function renderPrediction(r: PredictionResult | null): void {
     labelEl.style.color = r.label === "productive" ? "#0b5" : "#e44";
     barEl.style.background = r.label === "productive" ? "#0b5" : "#e44";
     barEl.style.width = `${(conf * 100).toFixed(0)}%`;
-    countEl.textContent = `${r.n_tokens} tokens`;
 }
 
 async function fetchAndRenderPrediction(tab: chrome.tabs.Tab): Promise<void> {
@@ -76,15 +69,6 @@ async function fetchAndRenderPrediction(tab: chrome.tabs.Tab): Promise<void> {
     }
 }
 
-async function fetchPageStatus(raw_url: string): Promise<void> {
-    const resp = await chrome.runtime.sendMessage({ type: MessageType.GET_PAGE_STATUS, raw_url });
-    if (resp?.ok) {
-        setStatus(resp.label ? `Current: ${resp.label}` : "Status: unknown");
-    } else {
-        setStatus(`Error: ${resp?.error ?? "unknown"}`);
-    }
-}
-
 async function initBlockingToggle(tab: chrome.tabs.Tab | null): Promise<void> {
     const toggle = document.getElementById("block-toggle") as HTMLInputElement | null;
     if (!toggle) return;
@@ -100,28 +84,60 @@ async function initBlockingToggle(tab: chrome.tabs.Tab | null): Promise<void> {
     });
 }
 
-async function main(): Promise<void> {
+async function initMainView(status: AuthStatus): Promise<void> {
+    const emailEl = document.getElementById("acct-email");
+    if (emailEl) emailEl.textContent = status.email || "Signed in";
+
     const tab = await getActiveTab();
     setUrlText(tab?.url ?? "No tab URL.");
 
     const isExtensionPage = tab?.url?.startsWith("chrome-extension://") ?? false;
-
     if (!isExtensionPage && tab?.id && tab.url) {
-        await fetchAndRenderPrediction(tab as chrome.tabs.Tab & { id: number; url: string });
+        await fetchAndRenderPrediction(tab);
     }
 
-    bindButton("productive", "productive");
-    bindButton("waste", "waste");
-    bindButton("skip", "skip");
-
-    if (!isExtensionPage && tab?.url) {
-        await fetchPageStatus(tab.url);
-    } else if (!isExtensionPage) {
-        setStatus("No URL to check");
+    if (mainInitialized) {
+        // Re-entering the main view (e.g. after signing out and back in) — the listeners are
+        // already attached, but the staged list belongs to whoever is signed in now.
+        refreshDonateView();
+        return;
     }
+    mainInitialized = true;
+
+    document.getElementById("sign-out")?.addEventListener("click", async () => {
+        await chrome.runtime.sendMessage({ type: MessageType.AUTH_LOGOUT });
+        await boot();
+    });
 
     await initBlockingToggle(tab);
     await initPomodoro();
+    initDonateView();
+    setStatus("");
 }
 
-document.addEventListener("DOMContentLoaded", () => { void main(); });
+async function boot(): Promise<void> {
+    showView("loading");
+
+    const resp = await chrome.runtime.sendMessage({ type: MessageType.GET_AUTH_STATUS });
+    const status = (resp?.status as AuthStatus | undefined) ?? { signedIn: false };
+
+    if (!status.signedIn) {
+        if (!authInitialized) {
+            authInitialized = true;
+            initAuthView(() => void boot());
+        }
+        showView("auth");
+        return;
+    }
+
+    await initMainView(status);
+    showView("main");
+}
+
+// Converges the two paths that change auth state outside this document: the Google consent
+// window (which destroys the popup mid-flow) and the uploader clearing an expired token.
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes[StorageKey.AUTH_TOKEN]) void boot();
+});
+
+document.addEventListener("DOMContentLoaded", () => { void boot(); });

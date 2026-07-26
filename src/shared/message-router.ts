@@ -16,7 +16,7 @@ export class MessageRouter {
             }
             handler(msg)
                 .then(sendResponse)
-                .catch((e) => sendResponse({ ok: false, error: String(e?.message ?? e) }));
+                .catch((e) => sendResponse({ ok: false, error: String(e?.message ?? e), code: e?.code }));
             return true;
         });
     }

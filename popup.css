@@ -1,139 +1,162 @@
 :root {
-    --w: 320px;
-  }
-  
-  body {
-    margin: 0;
-    width: var(--w);
-    font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif;
-  }
-  
-  .wrap {
-    padding: 12px;
-  }
-  
-  .header {
-    margin-bottom: 10px;
-  }
-  
-  .title {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 6px;
-  }
-  
-  .url {
-    font-size: 12px;
-    color: #444;
-    word-break: break-all;
-    line-height: 1.2;
-  }
-  
-  .prediction {
-    margin-bottom: 10px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
-  }
+  --w: 360px;
+}
 
-  #prediction-label {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 5px;
-  }
+body {
+  margin: 0;
+  width: var(--w);
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif;
+  color: #222;
+}
 
-  .confidence-bg {
-    background: #eee;
-    border-radius: 3px;
-    height: 6px;
-    margin-bottom: 4px;
-  }
+[hidden] { display: none !important; }
 
-  #confidence-bar {
-    height: 100%;
-    border-radius: 3px;
-    width: 0%;
-    background: #ccc;
-    transition: width 0.3s;
-  }
+.wrap { padding: 12px; }
+.title { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+.muted { font-size: 12px; color: #888; }
+.url { font-size: 12px; color: #444; word-break: break-all; line-height: 1.2; margin-bottom: 10px; }
 
-  #token-count {
-    font-size: 11px;
-    color: #888;
-  }
+.error { font-size: 12px; color: #e44; margin-top: 8px; min-height: 15px; line-height: 1.3; }
 
-  .buttons {
-    display: grid;
-    gap: 8px;
-  }
-  
-  .btn {
-    border: 1px solid #ccc;
-    border-radius: 10px;
-    padding: 10px 12px;
-    font-size: 13px;
-    cursor: pointer;
-    background: #fff;
-  }
-  
-  .btn:hover {
-    background: #f6f6f6;
-  }
-  
-  .block-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 10px;
-    padding: 8px 0;
-    border-top: 1px solid #eee;
-  }
+/* --- Buttons --- */
 
-  .block-row label {
-    font-size: 12px;
-    color: #444;
-    cursor: pointer;
-    user-select: none;
-  }
+.btn {
+  display: block; width: 100%;
+  border: 1px solid #ccc; border-radius: 10px; padding: 10px 12px;
+  font-size: 13px; cursor: pointer; background: #fff; color: #222;
+}
+.btn:hover:not(:disabled) { background: #f6f6f6; }
+.btn:disabled { opacity: 0.55; cursor: default; }
+.btn.primary { background: #222; color: #fff; border-color: #222; }
+.btn.primary:hover:not(:disabled) { background: #000; }
 
-  #block-toggle {
-    width: 34px;
-    height: 18px;
-    appearance: none;
-    background: #ccc;
-    border-radius: 9px;
-    cursor: pointer;
-    position: relative;
-    transition: background 0.2s;
-    flex-shrink: 0;
-  }
+.link {
+  background: none; border: none; padding: 0;
+  font-size: 12px; color: #666; cursor: pointer; text-decoration: underline;
+}
+.link:hover { color: #222; }
 
-  #block-toggle::after {
-    content: "";
-    position: absolute;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: #fff;
-    top: 2px;
-    left: 2px;
-    transition: left 0.2s;
-  }
+.icon-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 16px; line-height: 1; color: #999; padding: 0 2px;
+}
+.icon-btn:hover { color: #e44; }
 
-  #block-toggle:checked {
-    background: #e44;
-  }
+/* --- Auth view --- */
 
-  #block-toggle:checked::after {
-    left: 18px;
-  }
+.tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+.tab {
+  flex: 1; border: none; background: none; cursor: pointer;
+  font-size: 12px; color: #888; padding: 6px 0; border-bottom: 2px solid transparent;
+}
+.tab.active { color: #222; font-weight: 600; border-bottom-color: #222; }
 
-  .footer {
-    margin-top: 10px;
-    min-height: 18px;
-  }
-  
-  .status {
-    font-size: 12px;
-    color: #0b5;
-  }
-  
+.field {
+  display: block; width: 100%; box-sizing: border-box;
+  border: 1px solid #ccc; border-radius: 8px; padding: 9px 10px;
+  font-size: 13px; margin-bottom: 8px; font-family: inherit;
+}
+.field:focus { outline: none; border-color: #222; }
+
+.divider {
+  display: flex; align-items: center; gap: 8px;
+  margin: 12px 0; font-size: 11px; color: #aaa;
+}
+.divider::before, .divider::after {
+  content: ""; flex: 1; height: 1px; background: #eee;
+}
+
+/* --- Main view --- */
+
+.acct {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #eee;
+}
+#acct-email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.prediction { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+#prediction-label { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+.confidence-bg { background: #eee; border-radius: 3px; height: 6px; margin-bottom: 4px; }
+#confidence-bar {
+  height: 100%; border-radius: 3px; width: 0%;
+  background: #ccc; transition: width 0.3s;
+}
+.stub-note { font-size: 11px; color: #aaa; }
+
+.block-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0;
+}
+.block-row label { font-size: 13px; color: #222; cursor: pointer; user-select: none; }
+#block-toggle {
+  width: 34px; height: 18px; appearance: none; background: #ccc;
+  border-radius: 9px; cursor: pointer; position: relative;
+  transition: background 0.2s; flex-shrink: 0; margin: 0;
+}
+#block-toggle::after {
+  content: ""; position: absolute; width: 14px; height: 14px;
+  border-radius: 50%; background: #fff; top: 2px; left: 2px; transition: left 0.2s;
+}
+#block-toggle:checked { background: #e44; }
+#block-toggle:checked::after { left: 18px; }
+#block-toggle:disabled { opacity: 0.6; cursor: default; }
+
+.pomodoro-row { padding: 8px 0 10px; border-bottom: 1px solid #eee; }
+.pomodoro-row label { font-size: 12px; color: #444; margin-right: 6px; }
+.pomodoro-row span { font-size: 12px; color: #888; margin-right: 6px; }
+#pomodoro-setup, #pomodoro-active { display: flex; align-items: center; gap: 6px; }
+#pomodoro-minutes {
+  width: 52px; border: 1px solid #ccc; border-radius: 6px;
+  padding: 4px 6px; font-size: 12px; font-family: inherit;
+}
+#pomodoro-start, #pomodoro-cancel {
+  margin-left: auto; border: 1px solid #ccc; border-radius: 6px;
+  background: #fff; padding: 4px 12px; font-size: 12px; cursor: pointer;
+}
+#pomodoro-start:hover, #pomodoro-cancel:hover { background: #f6f6f6; }
+#pomodoro-countdown { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* --- Donation --- */
+
+.section { padding: 10px 0; border-bottom: 1px solid #eee; }
+.section-title { font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+
+.seg { display: flex; margin-bottom: 8px; }
+.seg-btn {
+  flex: 1; border: 1px solid #ccc; background: #fff; cursor: pointer;
+  font-size: 12px; padding: 7px 0; color: #666;
+}
+.seg-btn:first-child { border-radius: 8px 0 0 8px; }
+.seg-btn:last-child { border-radius: 0 8px 8px 0; border-left: none; }
+.seg-btn.active { background: #222; color: #fff; border-color: #222; }
+
+.staged-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px; font-weight: 600; margin-bottom: 6px;
+}
+
+/* Chrome caps popup height at 600px — an unbounded list would silently clip. */
+.staged-list {
+  list-style: none; margin: 0 0 8px; padding: 0;
+  max-height: 180px; overflow-y: auto;
+}
+.staged-list:empty { margin-bottom: 0; }
+
+.staged-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 6px 0; border-bottom: 1px solid #f4f4f4;
+}
+.staged-item.failed { background: #fff8f8; }
+.staged-main { flex: 1; min-width: 0; }
+.staged-title {
+  font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.staged-meta { font-size: 11px; color: #999; margin-top: 1px; }
+.staged-error { font-size: 11px; color: #e44; margin-top: 2px; line-height: 1.3; }
+.staged-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+.progress { font-size: 11px; color: #888; margin-top: 6px; min-height: 14px; }
+.progress.error { color: #e44; }
+
+.footer { margin-top: 10px; min-height: 18px; }
+.status { font-size: 12px; color: #0b5; }
