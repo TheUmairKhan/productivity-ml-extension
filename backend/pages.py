@@ -2,9 +2,9 @@ import hashlib
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
@@ -33,6 +33,52 @@ class PageLabelOut(BaseModel):
     raw_url: str
     label: str
     captured_at: datetime
+
+
+class DeleteResponse(BaseModel):
+    deleted_labels: int
+    deleted_pages: int
+
+
+async def _collect_orphans(session: AsyncSession, page_ids: list[uuid.UUID]) -> int:
+    """
+    Drop Page rows (and their R2 objects) that no user labels any more.
+
+    A Page is shared: several users can label the same URL, so deleting one user's label must
+    not destroy another user's data. Only once the last label is gone does the page itself
+    become garbage.
+    """
+    if not page_ids:
+        return 0
+
+    still_referenced = set(
+        (
+            await session.execute(
+                select(PageLabel.page_id).where(PageLabel.page_id.in_(page_ids)).distinct()
+            )
+        )
+        .scalars()
+        .all()
+    )
+    orphan_ids = [pid for pid in page_ids if pid not in still_referenced]
+    if not orphan_ids:
+        return 0
+
+    orphans = (
+        (await session.execute(select(Page).where(Page.id.in_(orphan_ids)))).scalars().all()
+    )
+
+    for page in orphans:
+        if page.r2_key:
+            # Best-effort: a failed object delete must not strand the DB row, otherwise the
+            # page becomes undeletable. Worst case is an orphaned blob in the bucket.
+            try:
+                await run_in_threadpool(r2_client.delete_html, page.r2_key)
+            except Exception:
+                pass
+
+    await session.execute(delete(Page).where(Page.id.in_(orphan_ids)))
+    return len(orphans)
 
 
 @router.get("/pages/me", response_model=list[PageLabelOut])
@@ -101,3 +147,52 @@ async def upload_page(
 
     await session.commit()
     return PageUploadResponse(page_id=page.id)
+
+
+# Declared before /pages/{page_id} — that route types page_id as a UUID, so "me" would be
+# rejected as invalid rather than falling through to this one.
+@router.delete("/pages/me", response_model=DeleteResponse)
+async def delete_my_pages(
+    user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session),
+) -> DeleteResponse:
+    page_ids = list(
+        (
+            await session.execute(select(PageLabel.page_id).where(PageLabel.user_id == user.id))
+        )
+        .scalars()
+        .all()
+    )
+
+    await session.execute(delete(PageLabel).where(PageLabel.user_id == user.id))
+    await session.flush()
+
+    deleted_pages = await _collect_orphans(session, page_ids)
+    await session.commit()
+
+    return DeleteResponse(deleted_labels=len(page_ids), deleted_pages=deleted_pages)
+
+
+@router.delete("/pages/{page_id}", response_model=DeleteResponse)
+async def delete_my_page(
+    page_id: uuid.UUID,
+    user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session),
+) -> DeleteResponse:
+    result = await session.execute(
+        select(PageLabel).where(
+            PageLabel.user_id == user.id,
+            PageLabel.page_id == page_id,
+        )
+    )
+    page_label = result.scalar_one_or_none()
+    if page_label is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PAGE_NOT_LABELED")
+
+    await session.delete(page_label)
+    await session.flush()
+
+    deleted_pages = await _collect_orphans(session, [page_id])
+    await session.commit()
+
+    return DeleteResponse(deleted_labels=1, deleted_pages=deleted_pages)

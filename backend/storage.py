@@ -31,4 +31,7 @@ class R2Client:
         response = self.client.get_object(Bucket=self.bucket, Key=key)
         return response["Body"].read().decode("utf-8")
 
+    def delete_html(self, key:str) -> None:
+        self.client.delete_object(Bucket=self.bucket, Key=key)
+
 r2_client = R2Client(bucket=os.environ["R2_BUCKET"])

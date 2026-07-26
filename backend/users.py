@@ -1,14 +1,15 @@
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response, status
 from fastapi_users import schemas
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .auth import current_active_user
 from .db import get_async_session
 from .models import Page, PageLabel, User
+from .pages import _collect_orphans
 
 router = APIRouter()
 
@@ -63,3 +64,32 @@ async def update_user_embedding(
         "productive": user.embedding_productive,
         "waste": user.embedding_waste,
     }
+
+
+@router.delete("/users/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_me(
+    user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session),
+) -> Response:
+    """
+    Delete the caller's account, their labels, and any page that nobody else labels.
+
+    page_labels already cascades on user delete, but that would leave the Page rows and their
+    R2 objects behind, so collect the orphans explicitly first.
+    """
+    page_ids = list(
+        (
+            await session.execute(select(PageLabel.page_id).where(PageLabel.user_id == user.id))
+        )
+        .scalars()
+        .all()
+    )
+
+    await session.execute(delete(PageLabel).where(PageLabel.user_id == user.id))
+    await session.flush()
+    await _collect_orphans(session, page_ids)
+
+    await session.delete(user)
+    await session.commit()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
