@@ -34,11 +34,13 @@ function setUrlText(msg: string): void {
 function renderPrediction(r: PredictionResult | null): void {
     const labelEl = document.getElementById("prediction-label");
     const barEl = document.getElementById("confidence-bar") as HTMLElement | null;
+    const noteEl = document.getElementById("prediction-note");
     if (!labelEl || !barEl) return;
 
     if (!r) {
         labelEl.textContent = "Loading…";
         labelEl.style.color = "#888";
+        if (noteEl) noteEl.textContent = "";
         return;
     }
 
@@ -47,6 +49,12 @@ function renderPrediction(r: PredictionResult | null): void {
     labelEl.style.color = r.label === "productive" ? "#0b5" : "#e44";
     barEl.style.background = r.label === "productive" ? "#0b5" : "#e44";
     barEl.style.width = `${(conf * 100).toFixed(0)}%`;
+
+    if (noteEl) {
+        noteEl.textContent =
+            `${(r.p_waste * 100).toFixed(0)}% waste` +
+            (r.params_version !== undefined ? ` · model v${r.params_version}` : "");
+    }
 }
 
 async function fetchAndRenderPrediction(tab: chrome.tabs.Tab): Promise<void> {

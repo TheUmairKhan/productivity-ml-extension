@@ -4,16 +4,20 @@
   "type": "module",
   "devDependencies": {
     "@types/chrome": "^0.1.32",
+    "esbuild": "^0.28.1",
     "typescript": "^5.0.0",
     "vitest": "^3.2.4"
   },
   "scripts": {
-    "build": "rm -rf dist && tsc -p tsconfig.json",
-    "watch": "tsc -p tsconfig.json --watch",
+    "assets": "python models/export_onnx.py && python models/export_client_assets.py",
+    "build": "rm -rf dist && node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "watch": "tsc -p tsconfig.json --watch --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.1.0"
+    "@neondatabase/serverless": "^1.1.0",
+    "onnxruntime-web": "^1.27.0"
   }
 }

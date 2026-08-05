@@ -6,6 +6,65 @@ export interface PredictionResult {
     label: PageLabel;
     p_productive: number;
     p_waste: number;
+    /** z_u . z_i, before calibration. Kept for debugging the scorer. */
+    score?: number;
+    /** Which global param version produced this, so stale cache entries are visible. */
+    params_version?: number;
+}
+
+// --- Item tower ---
+
+/** assets/extractor-config.json, with the list fields turned into Sets. */
+export interface ExtractorConfig {
+    max_tokens: number;
+    tag_to_idx: Record<string, number>;
+    innertext_tags: Set<string>;
+    exclude_tags: Set<string>;
+    void_elements: Set<string>;
+    meta_names: Set<string>;
+    cdata_elements: Set<string>;
+}
+
+/** assets/entities.json — Python's html.entities, so both sides decode alike. */
+export interface EntityTables {
+    html5: Record<string, string>;
+    invalid_charrefs: Record<string, string>;
+    invalid_codepoints: Set<number>;
+}
+
+// --- Two-tower parameters ---
+
+/** GET /params. Fit server-side on pooled donated data, cached on device. */
+export interface GlobalParams {
+    version: number;
+    sigma: number[];
+    z_global: number[];
+    a: number;
+    b: number;
+    kappa: number;
+    threshold: number;
+    encoder_version: string;
+    fitted_at: string;
+}
+
+/**
+ * The user tower's entire state: running sums and counts of preprocessed item
+ * embeddings, positives being "waste". Updating it on a new label is O(1) and
+ * involves no training.
+ */
+export interface UserAccumulators {
+    s_pos: number[];
+    n_pos: number;
+    s_neg: number[];
+    n_neg: number;
+}
+
+/** GET /users/me/embeddings — centroids plus the counts needed to rebuild sums. */
+export interface UserEmbeddingsOut {
+    productive: number[] | null;
+    waste: number[] | null;
+    n_productive: number;
+    n_waste: number;
 }
 
 // --- Auth ---

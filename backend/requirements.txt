@@ -8,3 +8,6 @@ uvicorn==0.50.0
 pydantic==2.13.0
 httpx==0.28.1
 boto3==1.43.42
+# Imported by backend/models.py; was missing, so a clean install did not boot.
+pgvector==0.4.2
+numpy==2.4.2

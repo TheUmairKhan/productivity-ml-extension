@@ -2,10 +2,12 @@ import os
 import uuid
 from datetime import datetime
 
+from typing import Any
+
 from fastapi_users.db import SQLAlchemyBaseUserTableUUID
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import DateTime, String, ForeignKey, UniqueConstraint, text
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy import Boolean, DateTime, Float, Integer, String, ForeignKey, UniqueConstraint, text
+from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base
@@ -47,3 +49,37 @@ class PageLabel(Base):
     )
     label: Mapped[str] = mapped_column(String, nullable=False)
     labeled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+
+class GlobalParams(Base):
+    """
+    The parameters every device needs to score locally, fit on pooled donated
+    data by models/fit_globals.py and refit periodically.
+
+    Rows are immutable and versioned; exactly one is active at a time. Devices
+    poll GET /params and cache whatever the active row says.
+    """
+    __tablename__ = "global_params"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    version: Mapped[int] = mapped_column(Integer, unique=True, nullable=False)
+
+    sigma: Mapped[list[float]] = mapped_column(Vector(EMBEDDING_DIM), nullable=False)
+    z_global: Mapped[list[float]] = mapped_column(Vector(EMBEDDING_DIM), nullable=False)
+    a: Mapped[float] = mapped_column(Float, nullable=False)
+    b: Mapped[float] = mapped_column(Float, nullable=False)
+    kappa: Mapped[float] = mapped_column(Float, nullable=False)
+    threshold: Mapped[float] = mapped_column(Float, nullable=False)
+
+    # Which encoder produced the embeddings this fit was derived from. Retraining
+    # the CNN invalidates sigma and z_global, so params and encoder travel together.
+    encoder_version: Mapped[str] = mapped_column(String, nullable=False)
+
+    metrics: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    n_pages: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    n_labels: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    n_users: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    fitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))

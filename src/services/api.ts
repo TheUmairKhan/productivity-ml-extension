@@ -1,7 +1,8 @@
 import { API_BASE_URL, API_TIMEOUT_MS, UPLOAD_TIMEOUT_MS } from "../shared/constants.js";
 import { clearSession, getSession } from "../shared/session.js";
 import type {
-    PageLabelOut, PageUploadBody, PageUploadResponse, TokenResponse,
+    GlobalParams, PageLabelOut, PageUploadBody, PageUploadResponse, TokenResponse,
+    UserEmbeddingsOut,
 } from "../shared/types.js";
 
 export class ApiError extends Error {
@@ -111,6 +112,18 @@ export async function getMe(): Promise<{ email: string }> {
 export async function listMyPages(): Promise<PageLabelOut[]> {
     const res = await authedFetch("/pages/me");
     return res.json() as Promise<PageLabelOut[]>;
+}
+
+/** The active global parameter set. Identical for every caller. */
+export async function getGlobalParams(): Promise<GlobalParams> {
+    const res = await authedFetch("/params");
+    return res.json() as Promise<GlobalParams>;
+}
+
+/** The caller's class centroids and label counts, used to seed the user tower. */
+export async function getUserEmbeddings(): Promise<UserEmbeddingsOut> {
+    const res = await authedFetch("/users/me/embeddings");
+    return res.json() as Promise<UserEmbeddingsOut>;
 }
 
 export async function uploadPage(body: PageUploadBody): Promise<PageUploadResponse> {

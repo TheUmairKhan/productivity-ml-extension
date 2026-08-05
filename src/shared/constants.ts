@@ -32,7 +32,15 @@ export const StorageKey = {
     AUTH_EXPIRES_AT: "auth_expires_at",
 
     UPLOAD_STATE: "upload_state",
+
+    // Two-tower state. The accumulators are the user tower in its entirety.
+    GLOBAL_PARAMS: "global_params",
+    USER_ACCUMULATORS: "user_accumulators",
 } as const;
+
+// Global params are refit about weekly and are the same for every user, so a
+// daily check is far more often than they actually change.
+export const PARAMS_REFRESH_MS = 24 * 60 * 60 * 1000;
 
 export const API_BASE_URL = "http://127.0.0.1:8000";
 

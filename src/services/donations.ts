@@ -2,6 +2,7 @@ import { MessageType } from "../shared/constants.js";
 import { MessageRouter } from "../shared/message-router.js";
 import type { StagePageRequest, StagedIdRequest } from "../shared/types.js";
 import { captureHtml, isHttpUrl, normalizeUrl } from "./capture.js";
+import { recordLabel } from "./predictor.js";
 import {
     clearStaged, listStaged, removeStaged, retryStaged, stagePage,
 } from "./staging.js";
@@ -28,6 +29,10 @@ export function registerHandlers(router: MessageRouter): void {
             captured_at: new Date().toISOString(),
             html,
         });
+
+        // Personalize now, on the HTML already in hand. This does not wait for
+        // the upload, and it counts even if the user never uploads at all.
+        await recordLabel(html, msg.label);
 
         return { ok: true, item, items: await listStaged() };
     });

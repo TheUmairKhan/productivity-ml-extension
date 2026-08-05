@@ -5,40 +5,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import torch
 from sqlalchemy import select
 
-import config
-from semantic_structure.extractor import _StructuredParser
-from semantic_structure.model import JFCNN
+from loader import encode_html, load_encoder
 from backend.db import async_session_maker
 from backend.models import Page
 from backend.storage import r2_client
 
-def load_checkpoint(ckpt_path: Path) -> tuple[JFCNN, dict]:
-    """
-    Load the train.py-saved checkpoint bundle and rebuild the JFCNN
-    with its trained weights, in eval mode.
-
-    Returns (model, token2idx).
-    """
-    bundle = torch.load(ckpt_path, map_location="cpu", weights_only=False)
-
-    model_cfg = bundle["config"]["paths"]["model"]
-    model = JFCNN(
-        word_matrix     = bundle["word_matrix"],
-        struct_matrix   = bundle["struct_matrix"],
-        num_filters     = model_cfg["num_filters"],
-        kernel_sizes    = model_cfg["kernel_sizes"],
-        fc_hidden       = model_cfg["fc_hidden"],
-        dropout         = model_cfg["dropout"],
-        num_classes     = model_cfg["num_classes"],
-        freeze_word_emb = model_cfg["freeze_word_emb"],
-    )
-    model.load_state_dict(bundle["model_state_dict"])
-    model.eval()
-
-    return model, bundle["token2idx"]
+BATCH_SIZE = 32
 
 
 async def pages_to_embed() -> list[Page]:
@@ -50,6 +24,7 @@ async def pages_to_embed() -> list[Page]:
             select(Page).where(Page.embedding.is_(None))
         )
         return list(result.scalars().all())
+
 
 def get_html(pages: list[Page]) -> list[tuple[Page, str]]:
     """
@@ -66,43 +41,27 @@ def get_html(pages: list[Page]) -> list[tuple[Page, str]]:
     return results
 
 
-@torch.no_grad()
-def embed_html(model: JFCNN, token2idx: dict, html: str) -> list[float]:
+async def write_embeddings(model, token2idx: dict, html_pages: list[tuple[Page, str]]) -> None:
     """
-    Tokenize raw HTML and run it through JFCNN.encode() to get z_i.
+    Compute and store z_raw for each page, one commit per batch.
+
+    Stores the *raw* encoder output, not the preprocessed vector: sigma is refit
+    weekly, and re-deriving every row on each refit would mean re-downloading the
+    whole corpus. Preprocessing is applied at read time instead.
     """
-    parser = _StructuredParser(max_tokens=config.M)
-    parser.feed(html)
-    pairs = parser.pairs
-
-    word_idx = torch.zeros(1, config.M, dtype=torch.long)
-    tag_idx = torch.zeros(1, config.M, dtype=torch.long)
-    for i, (tok, tag) in enumerate(pairs[:config.M]):
-        word_idx[0, i] = token2idx.get(tok, 1)   # 1 = UNK
-        tag_idx[0, i] = config.TAG_TO_IDX.get(tag, 0)   # 0 = PAD
-
-    z = model.encode(word_idx, tag_idx)
-    return z[0].tolist()
-
-
-async def write_embeddings(model: JFCNN, token2idx: dict, html_pages: list[tuple[Page, str]]) -> None:
-    """
-    Compute and store the 384-d embedding for each page.
-    """
-    # TODO: batch commits instead of committing after every page
     async with async_session_maker() as session:
-        for page, html in html_pages:
-            embedding = embed_html(model, token2idx, html)
-            merged_page = await session.merge(page)
-            merged_page.embedding = embedding
+        for start in range(0, len(html_pages), BATCH_SIZE):
+            batch = html_pages[start : start + BATCH_SIZE]
+            z_raw = encode_html(model, token2idx, [html for _, html in batch])
+
+            for (page, _), z in zip(batch, z_raw):
+                merged_page = await session.merge(page)
+                merged_page.embedding = z.tolist()
             await session.commit()
 
 
 async def main() -> None:
-    project_root = Path(__file__).parent.parent
-    ckpt_path = project_root / "models" / "checkpoints" / "jfcnn.pt"
-
-    model, token2idx = load_checkpoint(ckpt_path)
+    model, token2idx, _ = load_encoder()
     print(f"Loaded JFCNN with {len(token2idx)} vocab entries")
 
     pages = await pages_to_embed()
